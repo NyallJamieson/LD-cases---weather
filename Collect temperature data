@@ -1,0 +1,57 @@
+root_dir <- "D:\\dap.ceda.ac.uk\\badc\\ukmo-midas-open\\data\\uk-daily-temperature-obs\\dataset-version-202207"
+
+datalist=data.frame()
+for (i in fs::dir_ls(root_dir)){
+setwd(i)
+print(i)
+sub_folders <- fs::dir_ls(i)
+sub_correct <- sub_folders[!grepl("\\.html$",sub_folders,ignore.case=TRUE)]
+for (j in sub_correct){
+print(j)
+setwd(j)
+# find "qc-version-1" directory
+all_dirs <- fs::dir_ls(j)
+qc_dirs <- all_dirs[grepl("/qc-version-1$", all_dirs)]
+setwd(qc_dirs)
+
+# This code takes several files and reads the data into a single dataframe
+# Set the working directory to the file which contains all the .csv files
+
+# Create files as the list of files
+files <- list.files(getwd(),pattern="\\.csv")
+
+# For-loop to go through each file in files and extract the station, temperature and location data
+for (k in files){
+trial <- read.csv(k)
+# USAF is location ID, LAT AND LON are latitude and longitude coordinates respectively
+USAF <- trial[[3]][12]
+LAT <- trial[[3]][13]
+LON <- trial[[4]][13]
+# Manipulate file to extract relevant data from how the file is set up to get 
+x1 <- read.csv(file = k, head = TRUE, sep="\t")
+x1 <- as.matrix(x1)
+x2 <- x1[92:length(x1)-1]
+x3 <- data.table::fread(text=paste0(x2,collapse="\n"),data.table=FALSE)
+# Seperate the date and time
+x4 <- x3[1] |>
+separate('V1',c('Date','Time'),sep=' ') |>
+type.convert(as.is=TRUE)
+# Extract the maximum and minimum temperatures, date and time for each row in file
+max.temp <- x3[9]
+min.temp <- x3[10]
+Date <- x4[1]
+Time <- x4[2]
+# Create vector of station id's so it matches to all the columns of temperature and date values
+USAF.vec <- rep(USAF,times=nrow(Date))
+USAF.vec <- data.frame(USAF.vec)
+LAT.vec <- rep(LAT,times=nrow(Date))
+LAT.vec <- data.frame(LAT.vec)
+LON.vec <- rep(LON,times=nrow(Date))
+LON.vec <- data.frame(LON.vec)
+# Create dataframe table to combine all data
+Table <- data.frame(USAF.vec,Date,Time,LAT.vec,LON.vec,max.temp,min.temp)
+# Add this table to the current table so that all files data are getting combined
+datalist <- rbind(datalist,Table)
+}
+}
+}
