@@ -1,3 +1,12 @@
+library(tidyverse)
+library(dplyr)
+library(tidyr)
+
+extract_year <- function(file) {
+  year <- sub(".*_(\\d{4})\\.csv$", "\\1", fs::path_file(file))
+  return(as.numeric(year))
+}
+
 root_dir <- "D:\\dap.ceda.ac.uk\\badc\\ukmo-midas-open\\data\\uk-daily-temperature-obs\\dataset-version-202207"
 
 datalist=data.frame()
@@ -22,6 +31,8 @@ files <- list.files(getwd(),pattern="\\.csv")
 
 # For-loop to go through each file in files and extract the station, temperature and location data
 for (k in files){
+if (extract_year(k)>1979){
+
 trial <- read.csv(k)
 # USAF is location ID, LAT AND LON are latitude and longitude coordinates respectively
 USAF <- trial[[3]][12]
@@ -52,6 +63,7 @@ LON.vec <- data.frame(LON.vec)
 Table <- data.frame(USAF.vec,Date,Time,LAT.vec,LON.vec,max.temp,min.temp)
 # Add this table to the current table so that all files data are getting combined
 datalist <- rbind(datalist,Table)
+}
 }
 }
 }
