@@ -1,3 +1,5 @@
+# this gives daily precipitation data
+
 library(tidyverse)
 library(dplyr)
 library(tidyr)
