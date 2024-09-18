@@ -44,10 +44,12 @@ LON <- trial[[4]][13]
 x1 <- read.csv(file = k, head = TRUE, sep="\t")
 x1 <- as.matrix(x1)
 x2 <- x1[282:length(x1)-1]
+
+if (length(x2)>1){
 x3 <- data.table::fread(text=paste0(x2,collapse="\n"),data.table=FALSE)
 # Seperate the date and time
 x4 <- x3[1] |>
-separate('V1',c('Date','Time'),sep=' ') |>
+separate(colnames(x3[1]),c('Date','Time'),sep=' ') |>
 type.convert(as.is=TRUE)
 # Extract the maximum and minimum temperatures, date and time for each row in file
 wind.direction <- x3[10]
@@ -68,8 +70,10 @@ LON.vec <- rep(LON,times=nrow(Date))
 LON.vec <- data.frame(LON.vec)
 # Create dataframe table to combine all data
 Table <- data.frame(USAF.vec,Date,Time,LAT.vec,LON.vec,wind.direction,wind.speed,visibility,ave.air.temp,dewpoint,wetbulb.temp,relative.humidity)
+colnames(Table) <- c("USAF.vec","Date","Time","LAT.vec","LON.vec","wind.direction","wind.speed","visibility","ave.air.temp","dewpoint","wetbulb.temp","relative.humidity")
 # Add this table to the current table so that all files data are getting combined
 datalist <- rbind(datalist,Table)
+}
 }
 }
 }
