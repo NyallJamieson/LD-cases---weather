@@ -1,0 +1,84 @@
+dburr12 <- function(x,a,b,T){(1/T)*a*(b-1)*(x/T)^(a-1)*((1/2)^(1/(1-b))-1)*(1+((1/2)^(1/(1-b))-1)*(x/T)^(a))^(-b)}
+
+fitdistrplus::fitdist(legionnaires,"burr12",method="mle",start=list(a=2,b=5,T=6), lower=c(0,1,0))
+fitdistrplus::fitdist(legionnaires,"burr12",method="mle",start=list(a=1,b=2,T=2), lower=c(0,1,0))
+
+
+setwd("R://Legionella/")
+df <- read.csv('SimulatedTestLineListEpi.csv')
+df$date<- paste(df$Year.of.Onset,'/',df$Month.of.Onset,'/',df$Date.of.Onset, sep='')
+head(df)
+CID <- which(is.na(df$O.B) & (df$Date.of.Onset<31))
+head(df[CID,])
+
+TS <- hist(as.Date(df$date[CID]), breaks=seq( min(as.Date(df$date[CID]), na.rm=T),  max(as.Date(df$date[CID]), na.rm=T),1), plot='FALSE')
+TSdf <- data.frame(x = TS$mids-0.5, cases = TS$counts)
+TSdf$date <- as.Date(TSdf$x)
+
+keydates <- data.frame(start=c("2000-07-01","2001-07-01","2002-07-01","2003-07-01","2004-07-01","2005-07-01","2006-07-01",
+                               "2007-07-01","2008-07-01","2009-07-01", "2010-07-01","2011-07-01","2012-07-01"), 
+                       end=c("2000-08-31","2001-08-31","2002-08-31","2003-08-31","2004-08-31","2005-08-31","2006-08-31",
+                             "2007-08-31","2008-08-31","2009-08-31", "2010-08-31","2011-08-31","2012-08-31"))
+p1 <- ggplot(data=TSdf)+
+  geom_point(mapping=aes(x=date, y=cases), color='red')+
+  annotate("rect", xmin=as.Date(keydates$start),xmax=as.Date(keydates$end),
+           ymin=rep(0, length(keydates$start)),ymax=rep(15, length(keydates$start)),
+           alpha = .2, fill='lightgreen')+
+  xlim(as.Date(c("1980-07-01", "2013-06-30")))
+p1
+
+TSdf$wd <- weekdays(TSdf$date)
+TSdf$month <- month(TSdf$date)
+TSdf$year <- year(TSdf$date)
+
+m1 <- gam(cases ~ s(x, bs='gp', k=33*12)+wd, family=nb, data=TSdf)
+TSdf$fm1 <-fitted(m1)
+
+m2 <- gam(cases ~ s(month, bs='gp')+s(year, bs='gp')+wd, family=nb, data=TSdf)
+TSdf$fm2 <-fitted(m2)
+
+m3 <- gam(cases ~ s(x, bs='gp', k=33)+s(month, bs='cc')+wd, family=nb, data=TSdf)
+TSdf$fm3 <-fitted(m3)
+
+plot(m3)
+abline(h=-0.45)
+abline(h=0.6)
+abline(h=-0.1)
+abline(v=5)
+abline(v=6)
+abline(v=8)
+abline(v=7)
+abline(v=10)
+abline(v=11)
+
+p1 <- ggplot(data=TSdf)+
+  geom_point(mapping=aes(x=date, y=cases), color='red')+
+  annotate("rect", xmin=as.Date(keydates$start),xmax=as.Date(keydates$end),
+           ymin=rep(0, length(keydates$start)),ymax=rep(15, length(keydates$start)),
+           alpha = .2, fill='lightgreen')+
+  geom_line(mapping=aes(x=date, y=fm1), color='blue')+
+  geom_line(mapping=aes(x=date, y=fm2), color='purple')+
+geom_line(mapping=aes(x=date, y=fm3), color='black')
+p1
+
+p1 <- ggplot(data=TSdf)+
+  geom_point(mapping=aes(x=date, y=cases), color='red')+
+  annotate("rect", xmin=as.Date(keydates$start),xmax=as.Date(keydates$end),
+           ymin=rep(0, length(keydates$start)),ymax=rep(15, length(keydates$start)),
+           alpha = .2, fill='lightgreen')+
+  geom_line(mapping=aes(x=date, y=fm1), color='blue')+
+  geom_line(mapping=aes(x=date, y=fm2), color='purple')+
+  geom_line(mapping=aes(x=date, y=fm3), color='black')+
+  xlim(as.Date(c("2005-07-01", "2013-06-30")))
+p1
+# why Sunday and Thurs - are dates out of kilter Mon and Fri would make sense.
+
+which(TSdf$month<5)
+m1a <- gam(cases ~ s(x, bs='gp')+wd, family=nb, data=TSdf[which(TSdf$month<5),])
+#TSdf$fm1 <-fitted(m1)
+
+cpmy <- xtabs(cases ~ month+year, data=TSdf)
+plot(cpmy[9,], pch=16)
+for(i in 1:12){
+  points(cpmy[i,], col=i)
+}
